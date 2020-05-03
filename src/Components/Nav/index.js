@@ -1,44 +1,93 @@
 import React from "react";
-import {BrowserRouter as Router, Link, Route, Switch} from "react-router-dom";
-
-import Nav from "react-bootstrap/Nav";
+import {BrowserRouter as Router, Link, Route, Switch, Redirect} from "react-router-dom";
+import {checkSignIn, currentUser} from "../Redux/Actions/setActions";
+import {useSelector, useDispatch} from "react-redux";
+import fire from "../Firebase";
 import Home from "../Home";
-import SignIn from "../SignIn";
+import Login from "../Login";
 import SignUp from "../SignUp";
-
+import {Button, Nav, Navbar} from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 export default function Navigation(){
+
+    const signedIn = useSelector(state=>state.signedIn);
+    const db = fire.firestore();
+    const dispatch = useDispatch();
+    const change = useSelector(state=>state.change);
+
+    const SignOut = () => {
+        fire.auth().signOut().then(function() {
+
+        }).catch(function(error){
+
+        });
+    };
+
+    React.useEffect(() => {
+        let newItems = [];
+
+
+        fire.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                dispatch(checkSignIn(true));
+                dispatch(currentUser(user));
+            } else {
+                dispatch(checkSignIn(false));
+                dispatch(currentUser({name:""}));
+            }
+        });
+    }, [db, dispatch, change]);
+
     return(
         <div>
             <Router>
-                <Nav variant="tabs" defaultActiveKey="/home" style={{ marginBottom: 10}}>
-                    <Nav.Item>
-                        <Nav.Link eventKey={'link-1'}>
-                            <Link to={'/'} style={{padding:25}}>
-                                Home
-                            </Link>
-                        </Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Nav.Link eventKey={'link-2'}>
-                            <Link to={'/signin'} style={{padding:25}}>
-                                Sign In
-                            </Link>
-                        </Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Nav.Link eventKey={'link-3'}>
-                            <Link to={'/signup'} style={{padding:25}}>
-                                Sign Up
-                            </Link>
-                        </Nav.Link>
-                    </Nav.Item>
-                </Nav>
+                <Navbar bg={"dark"} variant={"dark"} fixed={"top"}>
+                    <Navbar.Brand>41300 Final</Navbar.Brand>
+                    <Nav defaultActiveKey="/home" className="mr-auto">
+                        {!signedIn?
+                            (
+                                <span style={{display:"flex"}}>
+                                    <Nav.Item>
+                                    <Nav.Link eventKey={'link-2'}>
+                                        <Link to={'/login'} style={{padding:25, textDecoration: "none", color: "grey"}}>
+                                            Login
+                                        </Link>
+                                    </Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey={'link-3'}>
+                                        <Link to={'/'} style={{padding:25, textDecoration: "none", color: "grey"}}>
+                                            Sign Up
+                                        </Link>
+                                    </Nav.Link>
+                                </Nav.Item>
+                            </span>
+                        ):(
+                            <span style={{display:"flex"}}>
+                                <Nav.Item>
+                                    <Nav.Link eventKey={'link-1'}>
+                                        <Link to={'/home'} style={{padding:25, textDecoration: "none", color: "grey"}}>
+                                            Home
+                                        </Link>
+                                    </Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Link to={"/login"}>
+                                        <Button variant="outline-info" onClick={SignOut}>Sign Out</Button>
+                                    </Link>
+                                </Nav.Item>
+                            </span>
+                        )}
+                    </Nav>
+                </Navbar>
                 <Switch>
-                    <Route path={'/'} component={Home} exact/>
-                    <Route path={'/signin'} component={SignIn}/>
-                    <Route path={'/signup'} component={SignUp}/>
+                    <Route path={'/'} component={SignUp} exact/>
+                    <Route path={'/login'} component={Login}/>
+                    <Route path={'/home'} component={Home}/>
+                    <Route path={"/home"}>
+                        {signedIn ? <Home/>:<Redirect to={"/login"}/>}
+                    </Route>
                 </Switch>
             </Router>
         </div>
